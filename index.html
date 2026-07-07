@@ -1,1 +1,362 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS & NPS 주간 대시보드 | 가전케어사업팀</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Malgun Gothic', 'Segoe UI', sans-serif;
+    background-color: #F3F4F6;
+    color: #1F2937;
+    min-height: 100vh;
+    padding: 24px 16px;
+  }
+  .container { max-width: 1200px; margin: 0 auto; }
 
+  /* Header */
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  h1 { font-size: 26px; font-weight: 700; color: #1F2937; }
+  h1 .dot { color: #C10933; }
+  .subtitle { font-size: 13px; color: #6B7280; margin-top: 4px; }
+  .source-tag {
+    font-size: 12px;
+    background: #fff;
+    padding: 8px 12px;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    color: #4B5563;
+  }
+  .source-tag b { color: #1F2937; }
+
+  /* KPI Cards */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  @media (max-width: 768px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  .kpi-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    border-left: 4px solid #9CA3AF;
+    transition: transform 0.2s ease;
+  }
+  .kpi-card:hover { transform: translateY(-3px); }
+  .kpi-card.green { border-left-color: #10B981; }
+  .kpi-card.blue  { border-left-color: #3B82F6; }
+  .kpi-card.red   { border-left-color: #C10933; }
+  .kpi-label { font-size: 13px; color: #6B7280; }
+  .kpi-value {
+    font-size: 30px;
+    font-weight: 700;
+    color: #1F2937;
+    margin-top: 8px;
+  }
+  .kpi-value.red { color: #C10933; }
+  .kpi-unit { font-size: 16px; color: #6B7280; font-weight: 500; }
+  .kpi-desc { font-size: 12px; color: #9CA3AF; margin-top: 4px; }
+
+  /* Chart cards */
+  .chart-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    margin-bottom: 24px;
+  }
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .chart-title { font-size: 17px; font-weight: 600; color: #1F2937; }
+  .badge {
+    font-size: 12px;
+    background: #FEF2F2;
+    color: #C10933;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-weight: 500;
+  }
+  .chart-area { width: 100%; height: 360px; position: relative; }
+  svg { width: 100%; height: 100%; overflow: visible; }
+
+  /* SVG chart styles */
+  .axis-line { stroke: #E5E7EB; stroke-width: 1; }
+  .axis-text { fill: #6B7280; font-size: 12px; font-family: inherit; }
+  .grid-line { stroke: #E5E7EB; stroke-dasharray: 3,3; stroke-width: 1; }
+  .bar { cursor: pointer; transition: opacity 0.2s; }
+  .bar:hover { opacity: 0.8; }
+  .bar-label { fill: #374151; font-size: 12px; font-weight: 500; }
+  .line-path {
+    fill: none;
+    stroke: #C10933;
+    stroke-width: 3;
+  }
+  .area-path { fill: rgba(193,9,51,0.1); }
+  .data-point {
+    fill: #C10933;
+    stroke: #fff;
+    stroke-width: 2;
+    cursor: pointer;
+    transition: r 0.2s;
+  }
+  .data-point:hover { r: 8; }
+
+  /* Custom Tooltip */
+  .tooltip {
+    position: absolute;
+    background: #1F2937;
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 100;
+  }
+  .tooltip.show { opacity: 1; }
+  .tooltip-title { font-weight: 700; margin-bottom: 2px; }
+
+  footer {
+    text-align: center;
+    font-size: 12px;
+    color: #9CA3AF;
+    margin-top: 32px;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Header -->
+    <header>
+      <div>
+        <h1><span class="dot">●</span> CS & NPS 주간 현황 대시보드</h1>
+        <div class="subtitle">가전케어사업팀 · 19주차 ~ 25주차 접수 데이터 기반</div>
+      </div>
+      <div class="source-tag">Data source: <b>주차별_CS_NPS_시각화.csv</b></div>
+    </header>
+
+    <!-- KPI Cards -->
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">총 접수건수</div>
+        <div class="kpi-value">1,000<span class="kpi-unit"> 건</span></div>
+        <div class="kpi-desc">전체 CS 접수 건</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">완료건수</div>
+        <div class="kpi-value">972<span class="kpi-unit"> 건</span></div>
+        <div class="kpi-desc">진행상태 = 완료</div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-label">평균 처리일수</div>
+        <div class="kpi-value">3.21<span class="kpi-unit"> 일</span></div>
+        <div class="kpi-desc">전체 건 기준 평균</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">평균 NPS 만족도</div>
+        <div class="kpi-value red">8.18<span class="kpi-unit"> / 10</span></div>
+        <div class="kpi-desc">NPS 0~10점 평균</div>
+      </div>
+    </section>
+
+    <!-- Bar Chart: Product NPS -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">제품 카테고리별 평균 NPS 점수</div>
+        <span class="badge">🔴 최저 제품 강조</span>
+      </div>
+      <div class="chart-area" id="barChartArea">
+        <svg id="barChart" viewBox="0 0 800 360" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+    </div>
+
+    <!-- Line Chart: Weekly Trend -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">주차별 접수건수 추이 (19주차 ~ 25주차)</div>
+      </div>
+      <div class="chart-area" id="lineChartArea">
+        <svg id="lineChart" viewBox="0 0 800 360" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+    </div>
+
+    <footer>© 2026 LG Electronics · 가전케어사업팀 · Offline Dashboard (No CDN)</footer>
+  </div>
+
+  <div class="tooltip" id="tooltip"></div>
+
+<script>
+  // ==== 데이터 ====
+  const productData = [
+    { name: '휘센 에어컨',  nps: 6.16 },
+    { name: '프라엘 뷰티',  nps: 8.23 },
+    { name: '그램 노트북',  nps: 8.47 },
+    { name: '디오스 냉장고', nps: 8.56 },
+    { name: '오브제 청소기', nps: 8.60 },
+    { name: '트롬 세탁기',  nps: 8.63 },
+    { name: '올레드 TV',   nps: 8.72 }
+  ];
+  const weeklyData = [
+    { week: '19주차', count: 149 },
+    { week: '20주차', count: 156 },
+    { week: '21주차', count: 150 },
+    { week: '22주차', count: 154 },
+    { week: '23주차', count: 141 },
+    { week: '24주차', count: 158 },
+    { week: '25주차', count: 26  }
+  ];
+
+  const tooltip = document.getElementById('tooltip');
+  function showTooltip(e, title, value) {
+    tooltip.innerHTML = '<div class="tooltip-title">' + title + '</div>' + value;
+    tooltip.classList.add('show');
+    moveTooltip(e);
+  }
+  function moveTooltip(e) {
+    tooltip.style.left = (e.pageX + 12) + 'px';
+    tooltip.style.top  = (e.pageY - 40) + 'px';
+  }
+  function hideTooltip() { tooltip.classList.remove('show'); }
+
+  // ==== Bar Chart (SVG) ====
+  function drawBarChart() {
+    const svg = document.getElementById('barChart');
+    const W = 800, H = 360;
+    const padL = 50, padR = 20, padT = 20, padB = 60;
+    const chartW = W - padL - padR;
+    const chartH = H - padT - padB;
+    const maxY = 10;
+    const minNps = Math.min(...productData.map(p => p.nps));
+
+    let html = '';
+    // Grid lines + Y axis labels
+    for (let i = 0; i <= 5; i++) {
+      const y = padT + (chartH / 5) * i;
+      const val = maxY - (maxY / 5) * i;
+      html += '<line class="grid-line" x1="' + padL + '" y1="' + y + '" x2="' + (W - padR) + '" y2="' + y + '"/>';
+      html += '<text class="axis-text" x="' + (padL - 8) + '" y="' + (y + 4) + '" text-anchor="end">' + val + '</text>';
+    }
+    // Bars
+    const barW = chartW / productData.length * 0.6;
+    const gap  = chartW / productData.length;
+    productData.forEach((p, i) => {
+      const x = padL + gap * i + (gap - barW) / 2;
+      const h = (p.nps / maxY) * chartH;
+      const y = padT + chartH - h;
+      const isMin = p.nps === minNps;
+      const color = isMin ? '#C10933' : '#9CA3AF';
+      html += '<rect class="bar" data-name="' + p.name + '" data-nps="' + p.nps + '" data-min="' + isMin + '"'
+            + ' x="' + x + '" y="' + y + '" width="' + barW + '" height="' + h + '" rx="6" fill="' + color + '"/>';
+      // Value label above bar
+      html += '<text class="bar-label" x="' + (x + barW/2) + '" y="' + (y - 6) + '" text-anchor="middle" fill="' + (isMin ? '#C10933' : '#374151') + '" font-weight="600">' + p.nps.toFixed(2) + '</text>';
+      // X axis label
+      html += '<text class="axis-text" x="' + (x + barW/2) + '" y="' + (H - padB + 20) + '" text-anchor="middle">' + p.name + '</text>';
+    });
+    // Axis lines
+    html += '<line class="axis-line" x1="' + padL + '" y1="' + (padT + chartH) + '" x2="' + (W - padR) + '" y2="' + (padT + chartH) + '"/>';
+    svg.innerHTML = html;
+
+    // Tooltip interaction
+    svg.querySelectorAll('.bar').forEach(bar => {
+      bar.addEventListener('mouseenter', (e) => {
+        const isMin = bar.getAttribute('data-min') === 'true';
+        const flag  = isMin ? ' ⚠️ 최저' : '';
+        showTooltip(e, bar.getAttribute('data-name'), 'NPS: ' + bar.getAttribute('data-nps') + ' / 10' + flag);
+      });
+      bar.addEventListener('mousemove', moveTooltip);
+      bar.addEventListener('mouseleave', hideTooltip);
+    });
+  }
+
+  // ==== Line Chart (SVG) ====
+  function drawLineChart() {
+    const svg = document.getElementById('lineChart');
+    const W = 800, H = 360;
+    const padL = 60, padR = 30, padT = 30, padB = 50;
+    const chartW = W - padL - padR;
+    const chartH = H - padT - padB;
+    const maxY = 200;
+
+    let html = '';
+    // Grid + Y labels
+    for (let i = 0; i <= 5; i++) {
+      const y = padT + (chartH / 5) * i;
+      const val = Math.round(maxY - (maxY / 5) * i);
+      html += '<line class="grid-line" x1="' + padL + '" y1="' + y + '" x2="' + (W - padR) + '" y2="' + y + '"/>';
+      html += '<text class="axis-text" x="' + (padL - 8) + '" y="' + (y + 4) + '" text-anchor="end">' + val + '</text>';
+    }
+    // Y axis title
+    html += '<text class="axis-text" x="20" y="' + (padT + chartH/2) + '" text-anchor="middle" transform="rotate(-90 20 ' + (padT + chartH/2) + ')">건수</text>';
+
+    // Compute points
+    const stepX = chartW / (weeklyData.length - 1);
+    const points = weeklyData.map((d, i) => {
+      const x = padL + stepX * i;
+      const y = padT + chartH - (d.count / maxY) * chartH;
+      return { x, y, ...d };
+    });
+
+    // Area path (filled)
+    let areaPath = 'M ' + points[0].x + ' ' + (padT + chartH);
+    points.forEach(p => { areaPath += ' L ' + p.x + ' ' + p.y; });
+    areaPath += ' L ' + points[points.length-1].x + ' ' + (padT + chartH) + ' Z';
+    html += '<path class="area-path" d="' + areaPath + '"/>';
+
+    // Line path
+    let linePath = 'M ' + points[0].x + ' ' + points[0].y;
+    for (let i = 1; i < points.length; i++) {
+      linePath += ' L ' + points[i].x + ' ' + points[i].y;
+    }
+    html += '<path class="line-path" d="' + linePath + '"/>';
+
+    // Points + X labels
+    points.forEach(p => {
+      html += '<circle class="data-point" data-week="' + p.week + '" data-count="' + p.count + '"'
+            + ' cx="' + p.x + '" cy="' + p.y + '" r="6"/>';
+      html += '<text class="axis-text" x="' + p.x + '" y="' + (H - padB + 20) + '" text-anchor="middle">' + p.week + '</text>';
+      // Value label above point
+      html += '<text class="bar-label" x="' + p.x + '" y="' + (p.y - 12) + '" text-anchor="middle" fill="#C10933" font-weight="600">' + p.count + '</text>';
+    });
+
+    // X axis line
+    html += '<line class="axis-line" x1="' + padL + '" y1="' + (padT + chartH) + '" x2="' + (W - padR) + '" y2="' + (padT + chartH) + '"/>';
+    svg.innerHTML = html;
+
+    // Tooltip
+    svg.querySelectorAll('.data-point').forEach(pt => {
+      pt.addEventListener('mouseenter', (e) => {
+        showTooltip(e, pt.getAttribute('data-week'), '접수: ' + pt.getAttribute('data-count') + ' 건');
+      });
+      pt.addEventListener('mousemove', moveTooltip);
+      pt.addEventListener('mouseleave', hideTooltip);
+    });
+  }
+
+  drawBarChart();
+  drawLineChart();
+</script>
+</body>
+</html>
